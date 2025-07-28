@@ -1,3 +1,4 @@
+use crate::transformer::Transformer;
 use boa_engine::property::Attribute;
 use boa_engine::{Context, JsString, JsValue, Source};
 
@@ -9,6 +10,12 @@ const TRANSFORM_PROCESS: &str = r#"
 
 pub(super) struct JsTransformer {
     context: Context,
+}
+
+impl Transformer for JsTransformer {
+    fn transform(&mut self, payload: &[u8]) -> Result<Vec<u8>, String> {
+        self.run(payload).map(|result| result.as_bytes().to_vec())
+    }
 }
 
 impl JsTransformer {
@@ -200,7 +207,9 @@ mod tests {
         assert_ok!(&transformer);
 
         let mut transformer = transformer.unwrap();
-        let result = transformer.run(b"{\"numbers\":[1,2,3,4,5],\"words\":[\"hello\",\"world\"],\"nested\":[[1,2],[3,4]]}");
+        let result = transformer.run(
+            b"{\"numbers\":[1,2,3,4,5],\"words\":[\"hello\",\"world\"],\"nested\":[[1,2],[3,4]]}",
+        );
         assert_ok!(&result);
         assert_eq!(
             result.unwrap().as_str(),
@@ -213,7 +222,7 @@ mod tests {
         let js_code = r#"
         function transform(input) {
             let result = {};
-            
+
             // If-else logic
             if (input.value > 10) {
                 result.category = "high";
@@ -222,10 +231,10 @@ mod tests {
             } else {
                 result.category = "low";
             }
-            
+
             // Ternary operator
             result.isEven = input.value % 2 === 0 ? true : false;
-            
+
             // Switch statement
             switch(input.type) {
                 case "A":
@@ -237,12 +246,12 @@ mod tests {
                 default:
                     result.typeDescription = "Unknown Type";
             }
-            
+
             // Logical operators
             result.logicalAnd = input.a && input.b;
             result.logicalOr = input.a || input.b;
             result.logicalNot = !input.a;
-            
+
             return result;
         }"#;
 
@@ -263,7 +272,7 @@ mod tests {
         let js_code = r#"
         function transform(input) {
             let result = {};
-            
+
             // Try-catch for error handling
             try {
                 if (!input.required) {
@@ -274,14 +283,14 @@ mod tests {
                 result.error = e.message;
                 result.validationPassed = false;
             }
-            
+
             // Data validation
             result.isValidEmail = /^[^\s@]+@[^\s@]+\.[^\s@]+$/.test(input.email || "");
             result.isPositiveNumber = input.number > 0;
-            
+
             // Default values with nullish coalescing
             result.username = input.username ?? "anonymous";
-            
+
             // Type checking
             result.types = {
                 numberType: typeof input.number,
@@ -290,7 +299,7 @@ mod tests {
                 objectType: typeof input.object,
                 undefinedType: typeof input.undefined
             };
-            
+
             return result;
         }"#;
 
@@ -305,7 +314,7 @@ mod tests {
             result.unwrap().as_str(),
             "{\"validationPassed\":true,\"isValidEmail\":true,\"isPositiveNumber\":true,\"username\":\"testuser\",\"types\":{\"numberType\":\"number\",\"stringType\":\"string\",\"booleanType\":\"boolean\",\"objectType\":\"object\",\"undefinedType\":\"undefined\"}}"
         );
-        
+
         // Test with invalid data
         let result = transformer.run(b"{\"email\":\"invalid\",\"number\":-5}");
         assert_ok!(&result);

@@ -1,5 +1,12 @@
-mod processors;
+extern crate core;
+
+use tracing::info;
+
+mod transformer;
+mod topic_processor;
 
 fn main() {
-    println!("Hello, world!");
+    tracing_subscriber::fmt::init();
+
+    info!("Hello, world!")
 }
