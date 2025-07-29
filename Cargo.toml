@@ -5,7 +5,6 @@ edition = "2024"
 
 [dependencies]
 boa_engine = "0.20.0"
-socket2 = { version = "0.4.0-alpha.5" }
 tokio = { version = "1", features = ["full"] }
 rdkafka = "0.38"
 futures = "0.3.31"

@@ -5,6 +5,7 @@ use rdkafka::config::RDKafkaLogLevel;
 use rdkafka::consumer::{CommitMode, Consumer, StreamConsumer};
 use rdkafka::error::KafkaError;
 use rdkafka::message::BorrowedMessage;
+use rdkafka::producer::future_producer::OwnedDeliveryResult;
 use rdkafka::producer::{FutureProducer, FutureRecord};
 use rdkafka::{ClientConfig, Message};
 use std::collections::HashMap;
@@ -29,6 +30,7 @@ pub(super) async fn run(config: TopicProcessorConfig) -> Result<(), String> {
         .set("enable.partition.eof", "false")
         .set("session.timeout.ms", "6000")
         .set("enable.auto.commit", "true")
+        .set("auto.commit.interval.ms", "5000")
         .set_log_level(RDKafkaLogLevel::Debug);
 
     let consumer: StreamConsumer = kafka_config.create().expect("Consumer creation failed");
@@ -65,9 +67,14 @@ pub(super) async fn run(config: TopicProcessorConfig) -> Result<(), String> {
                                         .payload(payload.payload.as_slice())
                                         .key(key.as_slice());
 
-                                    producer_clone.send(record, Duration::from_secs(0)).await;
+                                    producer_clone
+                                        .send(record, Duration::from_secs(0))
+                                        .await
+                                        .expect("Can't send message to output topic!");
                                 }
-                                Err(_) => {}
+                                Err(error) => {
+                                    error!("Failed to process message: {:?}", error);
+                                }
                             }
                         }
                     });
